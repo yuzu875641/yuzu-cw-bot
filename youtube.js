@@ -8,38 +8,46 @@ const chatwork = require('./chatwork');
 // YouTube URLを解析するための正規表現
 const YOUTUBE_URL = /(?:https?:\/\/)?(?:www\.)?youtu(?:\.be\/|be\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([\w\-]+)/;
 
-// Invidiousインスタンス一覧のURL
-const INVIDIOUS_INSTANCES_URL = "https://raw.githubusercontent.com/wakame02/wktopu/refs/heads/main/inv.json";
-
-// ロードされたInvidiousインスタンスを格納する配列
-let invidiousInstances = [];
-
-/**
- * Invidiousインスタンス一覧を外部URLからロードします。
- * 失敗した場合はエラーをログに記録します。
- */
-async function loadInvidiousInstances() {
-  try {
-    const response = await axios.get(INVIDIOUS_INSTANCES_URL);
-    // JSONレスポンスが直接インスタンスの配列であると想定
-    invidiousInstances = response.data.map(inst => `https://${inst.uri}`);
-    console.log("Invidiousインスタンス一覧をロードしました。");
-  } catch (error) {
-    console.error("Invidiousインスタンスのロードに失敗しました:", error.message);
-    // エラーが発生した場合、空の配列で処理を続行
-    invidiousInstances = [];
-  }
-}
+// ハードコードされたInvidiousインスタンスのリスト
+const INVIDIOUS_INSTANCES = [
+  "https://nyc1.iv.ggtyler.dev",
+  "https://cal1.iv.ggtyler.dev",
+  "https://invidious.nikkosphere.com",
+  "https://lekker.gay",
+  "https://invidious.f5.si",
+  "https://invidious.lunivers.trade",
+  "https://invid-api.poketube.fun",
+  "https://pol1.iv.ggtyler.dev",
+  "https://eu-proxy.poketube.fun",
+  "https://iv.melmac.space",
+  "https://invidious.reallyaweso.me",
+  "https://invidious.dhusch.de",
+  "https://usa-proxy2.poketube.fun",
+  "https://id.420129.xyz",
+  "https://invidious.darkness.service",
+  "https://iv.datura.network",
+  "https://invidious.jing.rocks",
+  "https://invidious.private.coffee",
+  "https://youtube.mosesmang.com",
+  "https://iv.duti.dev",
+  "https://invidious.projectsegfau.lt",
+  "https://invidious.perennialte.ch",
+  "https://invidious.einfachzocken.eu",
+  "https://invidious.adminforge.de",
+  "https://inv.nadeko.net",
+  "https://invidious.esmailelbob.xyz",
+  "https://invidious.0011.lt",
+  "https://invidious.ducks.party"
+];
 
 /**
  * 動作しているInvidiousインスタンスをリストから見つけます。
- * タイムアウトを設定し、最初の成功したインスタンスを返します。
+ * タイムアウトを設定し、最初に成功したインスタンスを返します。
  * @returns {Promise<string|null>} 動作しているインスタンスのURL、またはnull
  */
 async function getWorkingInstance() {
-  for (const instance of invidiousInstances) {
+  for (const instance of INVIDIOUS_INSTANCES) {
     try {
-      // 軽いヘルスチェックとして、存在しないビデオIDにアクセス
       const response = await axios.get(`${instance}/api/v1/videos/DeKLpgzh-qQ`, { timeout: 5000 });
       if (response.status === 200) {
         console.log(`使用するインスタンス: ${instance}`);
@@ -61,7 +69,7 @@ async function getwakametube(body, message, messageId, roomId, accountId) {
   const regex = /「(.*?)」/;
   const matchid = ms.match(regex);
 
-  // まず、動作するInvidiousインスタンスを取得
+  // 動作するInvidiousインスタンスを取得
   const invidiousInstance = await getWorkingInstance();
   if (!invidiousInstance) {
     await chatwork.sendchatwork(`[rp aid=${accountId} to=${roomId}-${messageId}][pname:${accountId}]さん\n現在、利用可能なYouTubeプロキシがありません。`, roomId);
@@ -72,6 +80,7 @@ async function getwakametube(body, message, messageId, roomId, accountId) {
   if (matchid && matchid[1]) {
     try {
       const searchQuery = matchid[1];
+      console.log(`検索クエリ: ${searchQuery}`);
       const videoId = await getFirstVideoId(searchQuery, invidiousInstance);
       if (videoId) {
         await sendVideoInfo(videoId, messageId, roomId, accountId, invidiousInstance);
@@ -152,5 +161,4 @@ async function sendVideoInfo(videoId, messageId, roomId, accountId, invidiousIns
 module.exports = {
   getwakametube,
   getFirstVideoId,
-  loadInvidiousInstances,
 };
