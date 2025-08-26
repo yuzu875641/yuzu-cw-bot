@@ -46,15 +46,17 @@ const INVIDIOUS_INSTANCES = [
  * @returns {Promise<string|null>} 動作しているインスタンスのURL、またはnull
  */
 async function getWorkingInstance() {
+  const TEST_VIDEO_ID = 'n1m4id6UACE'; // 実際に存在する動画ID
   for (const instance of INVIDIOUS_INSTANCES) {
     try {
-      const response = await axios.get(`${instance}/api/v1/videos/DeKLpgzh-qQ`, { timeout: 5000 });
+      // 実際に存在する動画IDを使ってヘルスチェック
+      const response = await axios.get(`${instance}/api/v1/videos/${TEST_VIDEO_ID}`, { timeout: 5000 });
       if (response.status === 200) {
         console.log(`使用するインスタンス: ${instance}`);
         return instance;
       }
     } catch (error) {
-      console.warn(`インスタンス ${instance} は動作していません。`);
+      console.warn(`インスタンス ${instance} は動作していません。`, error.message);
     }
   }
   return null;
@@ -88,7 +90,7 @@ async function getwakametube(body, message, messageId, roomId, accountId) {
       console.log(`検索クエリ: ${searchQuery}`);
       const videoId = await getFirstVideoId(searchQuery, invidiousInstance);
       if (videoId) {
-        await sendVideoInfo(videoId, messageId, roomId, accountId, invidiousInstance);
+        await sendVideoInfo(videoId, messageId, roomId, accountId);
       } else {
         await chatwork.sendchatwork(`[rp aid=${accountId} to=${roomId}-${messageId}][pname:${accountId}]さん\n指定されたキーワードで動画が見つかりませんでした。`, roomId);
       }
@@ -116,7 +118,7 @@ async function getwakametube(body, message, messageId, roomId, accountId) {
     }
     const videoId = match[1];
     try {
-      await sendVideoInfo(videoId, messageId, roomId, accountId, invidiousInstance);
+      await sendVideoInfo(videoId, messageId, roomId, accountId);
       return;
     } catch (error) {
       console.error("URL処理エラー:", error);
@@ -146,31 +148,48 @@ async function getFirstVideoId(query, invidiousInstance) {
 
 /**
  * 動画情報を取得してChatWorkに送信する共通関数。
+ * @param {string} videoId - YouTubeの動画ID
+ * @param {string} messageId - ChatWorkのメッセージID
+ * @param {string} roomId - ChatWorkのルームID
+ * @param {string} accountId - ChatWorkのユーザーID
  */
-async function sendVideoInfo(videoId, messageId, roomId, accountId, invidiousInstance) {
-  try {
-    const response = await axios.get(`${invidiousInstance}/api/v1/videos/${videoId}`);
-    const videoData = response.data;
-    
-    const videoTitle = videoData.title;
-    const author = videoData.author;
-    const hlsUrl = videoData.hlsUrl;
-    
-    let messageBody = `[rp aid=${accountId} to=${roomId}-${messageId}]\n`;
-    messageBody += `${videoTitle} - ${author}\n`;
-    
-    if (hlsUrl) {
-      messageBody += `[code]${hlsUrl}[/code]\n`;
-    } else {
-      messageBody += `動画のストリームURLが見つかりませんでした。\n`;
-    }
+async function sendVideoInfo(videoId, messageId, roomId, accountId) {
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      console.log(`動画情報取得を試行: ${instance}`);
+      const response = await axios.get(`${instance}/api/v1/videos/${videoId}`, { timeout: 10000 });
+      const videoData = response.data;
+      
+      const videoTitle = videoData.title;
+      const author = videoData.author;
+      const hlsUrl = videoData.hlsUrl;
+      
+      let messageBody = `[rp aid=${accountId} to=${roomId}-${messageId}]\n`;
+      messageBody += `${videoTitle} - ${author}\n`;
+      
+      if (hlsUrl) {
+        messageBody += `[code]${hlsUrl}[/code]\n`;
+      } else {
+        messageBody += `動画のストリームURLが見つかりませんでした。\n`;
+      }
 
-    
-    await chatwork.sendchatwork(messageBody, roomId);
-  } catch (error) {
-    console.error("動画情報取得APIエラー:", error.response?.data || error.message);
-    throw error;
+      messageBody += `Invidiousで視聴する\n${instance}/watch?v=${videoId}`;
+      
+      await chatwork.sendchatwork(messageBody, roomId);
+      console.log(`動画情報取得成功: ${instance}`);
+      return; // 成功したらループを抜ける
+    } catch (error) {
+      console.warn(`インスタンス ${instance} で動画情報の取得に失敗:`, error.response?.status, error.message);
+      // エラーが500以外の場合はChatWorkに通知してループを抜ける
+      if (error.response?.status !== 500 && error.response?.status !== 404) {
+        await chatwork.sendchatwork(`[rp aid=${accountId} to=${roomId}-${messageId}][pname:${accountId}]さん\n動画情報の取得中にエラーが発生しました。`, roomId);
+        return;
+      }
+    }
   }
+
+  // すべてのインスタンスで失敗した場合
+  await chatwork.sendchatwork(`[rp aid=${accountId} to=${roomId}-${messageId}][pname:${accountId}]さん\n現在、利用可能なYouTubeプロキシがありません。`, roomId);
 }
 
 module.exports = {
