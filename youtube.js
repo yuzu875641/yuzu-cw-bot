@@ -69,16 +69,21 @@ async function getwakametube(body, message, messageId, roomId, accountId) {
   const regex = /「(.*?)」/;
   const matchid = ms.match(regex);
 
-  // 動作するInvidiousインスタンスを取得
-  const invidiousInstance = await getWorkingInstance();
-  if (!invidiousInstance) {
-    await chatwork.sendchatwork(`[rp aid=${accountId} to=${roomId}-${messageId}][pname:${accountId}]さん\n現在、利用可能なYouTubeプロキシがありません。`, roomId);
-    return;
-  }
-
   // 1. キーワード検索による動画取得
   if (matchid && matchid[1]) {
     try {
+      // 処理中のメッセージを投稿
+      await chatwork.sendchatwork(`[rp aid=${accountId} to=${roomId}-${messageId}][pname:${accountId}]さん\n少々お待ちください…`, roomId);
+
+      // 5秒間待機
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      const invidiousInstance = await getWorkingInstance();
+      if (!invidiousInstance) {
+        await chatwork.sendchatwork(`[rp aid=${accountId} to=${roomId}-${messageId}][pname:${accountId}]さん\n現在、利用可能なYouTubeプロキシがありません。`, roomId);
+        return;
+      }
+      
       const searchQuery = matchid[1];
       console.log(`検索クエリ: ${searchQuery}`);
       const videoId = await getFirstVideoId(searchQuery, invidiousInstance);
@@ -98,6 +103,17 @@ async function getwakametube(body, message, messageId, roomId, accountId) {
   // 2. YouTube URLによる動画取得
   const match = ms.match(YOUTUBE_URL);
   if (match) {
+    // 処理中のメッセージを投稿
+    await chatwork.sendchatwork(`[rp aid=${accountId} to=${roomId}-${messageId}][pname:${accountId}]さん\n少々お待ちください…`, roomId);
+    
+    // 5秒間待機
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    const invidiousInstance = await getWorkingInstance();
+    if (!invidiousInstance) {
+      await chatwork.sendchatwork(`[rp aid=${accountId} to=${roomId}-${messageId}][pname:${accountId}]さん\n現在、利用可能なYouTubeプロキシがありません。`, roomId);
+      return;
+    }
     const videoId = match[1];
     try {
       await sendVideoInfo(videoId, messageId, roomId, accountId, invidiousInstance);
