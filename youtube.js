@@ -25,6 +25,10 @@ const INVIDIOUS_INSTANCES = [
   "https://usa-proxy2.poketube.fun",
   "https://id.420129.xyz",
   "https://invidious.darkness.service",
+  "https://iv.datura.network",
+  "https://invidious.jing.rocks",
+  "https://invidious.private.coffee",
+  "https://youtube.mosesmang.com",
   "https://iv.duti.dev",
   "https://invidious.projectsegfau.lt",
   "https://invidious.perennialte.ch",
@@ -80,21 +84,21 @@ async function handleYoutubeRequest(body, message, messageId, roomId, accountId)
       const videoResults = await getSearchResults(searchQuery, invidiousInstance, 5); // 5件取得
       
       if (videoResults.length > 0) {
-        let responseMessage = `[rp aid=${accountId} to=${roomId}-${messageId}][pname:${accountId}]さん\n検索結果を5件表示します。\n\n`;
-        
-        videoResults.forEach(video => {
+        // 各動画を個別のメッセージで送信
+        for (const video of videoResults) {
+          let responseMessage = `[rp aid=${accountId} to=${roomId}-${messageId}][pname:${accountId}]さん\n`;
           responseMessage += `タイトル: ${video.title}\n`;
           responseMessage += `ID: ${video.videoId}\n`;
-          // サムネイルが存在するかチェック
+          // サムネイルが存在するかチェックし、存在すれば画像として表示
           if (video.videoThumbnails && video.videoThumbnails.length > 0) {
-            responseMessage += `サムネイル: ${video.videoThumbnails[0].url}\n\n`;
+            responseMessage += `[info][title:サムネイル][hr][img src=${video.videoThumbnails[0].url}][/info]\n`;
           } else {
-            responseMessage += `サムネイル: なし\n\n`;
+            responseMessage += `サムネイル: なし\n`;
           }
-        });
-        
-        responseMessage += `\n動画の詳細情報を表示するには、IDを指定して「OK [動画ID]」と返信してください。`;
-        await chatwork.sendchatwork(responseMessage, roomId);
+          responseMessage += `動画の詳細情報を表示するには、「OK ${video.videoId}」と返信してください。`;
+          
+          await chatwork.sendchatwork(responseMessage, roomId);
+        }
       } else {
         await chatwork.sendchatwork(`[rp aid=${accountId} to=${roomId}-${messageId}][pname:${accountId}]さん\n指定されたキーワードで動画が見つかりませんでした。`, roomId);
       }
