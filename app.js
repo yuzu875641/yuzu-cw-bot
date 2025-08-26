@@ -11,7 +11,7 @@ app.use(express.json());
 
 // ChatWork webhook用のコマンドディスパッチテーブル
 const commands = {
-  "youtube": youtube.getwakametube,
+  "youtube": youtube.handleYoutubeRequest,
 };
 
 // コマンドを抽出するヘルパー関数
@@ -44,6 +44,13 @@ app.post('/webhook', async (req, res) => {
     const command = getCommand(body);
     const message = body.replace(/\[To:\d+\s+ゆずbotさん\]|\/.*?\/|\s+/g, "");
 
+    // 新しいOKコマンドの処理を追加
+    if (message.startsWith("OK")) {
+        const videoId = message.split(' ')[1];
+        await youtube.sendVideoInfo(videoId, messageId, roomId, accountId);
+        return res.sendStatus(200);
+    }
+
     // コマンドディスパッチ
     if (command && commands[command]) {
       await commands[command](body, message, messageId, roomId, accountId);
@@ -59,5 +66,4 @@ app.post('/webhook', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
-  // ここで関数呼び出しを削除
 });
