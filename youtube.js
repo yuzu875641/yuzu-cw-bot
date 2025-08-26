@@ -25,10 +25,6 @@ const INVIDIOUS_INSTANCES = [
   "https://usa-proxy2.poketube.fun",
   "https://id.420129.xyz",
   "https://invidious.darkness.service",
-  "https://iv.datura.network",
-  "https://invidious.jing.rocks",
-  "https://invidious.private.coffee",
-  "https://youtube.mosesmang.com",
   "https://iv.duti.dev",
   "https://invidious.projectsegfau.lt",
   "https://invidious.perennialte.ch",
@@ -89,7 +85,12 @@ async function handleYoutubeRequest(body, message, messageId, roomId, accountId)
         videoResults.forEach(video => {
           responseMessage += `タイトル: ${video.title}\n`;
           responseMessage += `ID: ${video.videoId}\n`;
-          responseMessage += `サムネイル: ${video.videoThumbnails[0].url}\n\n`; // 一番最初のサムネイルを取得
+          // サムネイルが存在するかチェック
+          if (video.videoThumbnails && video.videoThumbnails.length > 0) {
+            responseMessage += `サムネイル: ${video.videoThumbnails[0].url}\n\n`;
+          } else {
+            responseMessage += `サムネイル: なし\n\n`;
+          }
         });
         
         responseMessage += `\n動画の詳細情報を表示するには、IDを指定して「OK [動画ID]」と返信してください。`;
@@ -108,12 +109,20 @@ async function handleYoutubeRequest(body, message, messageId, roomId, accountId)
 
 /**
  * 検索クエリに一致する動画のリストをInvidious APIで取得します。
+ * @param {string} query 検索クエリ
+ * @param {string} invidiousInstance 使用するInvidiousインスタンスURL
+ * @param {number} count 取得する件数
+ * @returns {Promise<Array>} 動画オブジェクトの配列
  */
 async function getSearchResults(query, invidiousInstance, count) {
   try {
     const response = await axios.get(`${invidiousInstance}/api/v1/search?q=${encodeURIComponent(query)}`);
-    if (response.data.length > 0) {
-      return response.data.slice(0, count);
+    
+    // 動画のみをフィルタリング
+    const videoResults = response.data.filter(item => item.type === 'video');
+    
+    if (videoResults.length > 0) {
+      return videoResults.slice(0, count);
     }
     return [];
   } catch (error) {
@@ -130,8 +139,6 @@ async function getSearchResults(query, invidiousInstance, count) {
  * @param {string} accountId - ChatWorkのユーザーID
  */
 async function sendVideoInfo(videoId, messageId, roomId, accountId) {
-  // 動画URLが直接入力された場合の処理は削除されました。
-  // OKコマンドで呼ばれるため、`invidiousInstance`の再取得が必要
   const invidiousInstance = await getWorkingInstance();
   if (!invidiousInstance) {
       await chatwork.sendchatwork(`[rp aid=${accountId} to=${roomId}-${messageId}][pname:${accountId}]さん\n現在、利用可能なYouTubeプロキシがありません。`, roomId);
