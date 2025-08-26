@@ -48,7 +48,7 @@ const INVIDIOUS_INSTANCES = [
 async function getWorkingInstance() {
   for (const instance of INVIDIOUS_INSTANCES) {
     try {
-      const response = await axios.get(`${instance}/api/v1/videos/DeKLpgzh-qQ`, { timeout: 5000 });
+      const response = await axios.get(`${instance}/api/v1/videos/null`, { timeout: 5000 });
       if (response.status === 200) {
         console.log(`使用するインスタンス: ${instance}`);
         return instance;
@@ -165,7 +165,6 @@ async function sendVideoInfo(videoId, messageId, roomId, accountId, invidiousIns
       messageBody += `動画のストリームURLが見つかりませんでした。\n`;
     }
 
-    messageBody += `Invidiousで視聴する\n${invidiousInstance}/watch?v=${videoId}`;
     
     await chatwork.sendchatwork(messageBody, roomId);
   } catch (error) {
