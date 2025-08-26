@@ -1,0 +1,13 @@
+{
+  "name": "chatwork-bot",
+  "version": "1.0.0",
+  "description": "A ChatWork bot that fetches and shares YouTube video links from a list of Invidious instances.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0"
+  }
+}
